@@ -19,12 +19,15 @@ import scipy.spatial
 from multiprocessing.dummy import Pool as ThreadPool
 from itertools import repeat
 import sklearn
+from sklearn.metrics import pairwise_distances
 
 # from lazy_greedy import FacilityLocation, lazy_greedy, lazy_greedy_heap
 # from set_cover import SetCover
 
-from tensorflow.contrib.learn.python.learn.datasets.mnist import read_data_sets
-from tensorflow.examples.tutorials.mnist import input_data
+# # Tensorflow 2.0 deprecations
+# from tensorflow.contrib.learn.python.learn.datasets.mnist import read_data_sets
+# from tensorflow.examples.tutorials.mnist import input_data
+import keras
 
 SEED = 100
 EPS = 1E-8
@@ -64,11 +67,15 @@ def load_dataset(dataset, dataset_dir):
         path = os.path.join('grad_features.npy')
         X = np.load(path)  # shape [50000, 1000], type float16
     elif dataset == 'mnist':
-        mnist = input_data.read_data_sets('/tmp')
-        X_train = np.vstack([mnist.train.images, mnist.validation.images])
-        y_train = np.hstack([mnist.train.labels, mnist.validation.labels])
-        X_test = mnist.test.images
-        y_test = mnist.test.labels
+        (X_train, y_train), (X_test, y_test) = keras.datasets.mnist.load_data()
+        X_train = X_train.reshape(60000, 784)
+        X_test = X_test.reshape(10000, 784)
+        # # Tensorflow 2.0 Deprecations
+        # mnist = input_data.read_data_sets('/tmp')
+        # X_train = np.vstack([mnist.train.images, mnist.validation.images])
+        # y_train = np.hstack([mnist.train.labels, mnist.validation.labels])
+        # X_test = mnist.test.images
+        # y_test = mnist.test.labels
         X_train = X_train.astype(np.float32) / 255
         X_test = X_test.astype(np.float32) / 255
         return X_train, y_train, X_test, y_test
@@ -117,7 +124,7 @@ def similarity(X, metric):
     '''
     # print(f'Computing similarity for {metric}...', flush=True)
     start = time.time()
-    dists = sklearn.metrics.pairwise_distances(X, metric=metric, n_jobs=1)
+    dists = pairwise_distances(X, metric=metric, n_jobs=1)
     # dists = gdist(X, X, optimize_level=0, output='cpu')
     elapsed = time.time() - start
 
@@ -378,7 +385,7 @@ def save_all_orders_and_weights(folder, X, metric='l2', stoch_greedy=False, y=No
         time.sleep(.1)
         start = time.time()
         if metric in ['', 'l2', 'l1']:
-            dists = sklearn.metrics.pairwise_distances(X[class_indices[c]], metric=metric, n_jobs=1)
+            dists = pairwise_distances(X[class_indices[c]], metric=metric, n_jobs=1)
         else:
             p = float(metric)
             dim = class_nums[c]
